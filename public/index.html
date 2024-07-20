@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Subtitle Extractor</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #1e1e1e;
+            color: #f0f0f0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .container {
+            width: 80%;
+            max-width: 800px;
+            margin: 20px;
+            padding: 20px;
+            background: #2d2d2d;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
+        }
+        h1 {
+            text-align: center;
+            color: #e0e0e0;
+        }
+        form {
+            margin: 20px 0;
+        }
+        input[type="file"], input[type="text"] {
+            margin: 10px 0;
+            padding: 10px;
+            border: none;
+            border-radius: 5px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 15px 20px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin: 10px 0;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        #progress {
+            margin: 20px 0;
+            display: none;
+        }
+        #loading {
+            display: none;
+        }
+        #loading img {
+            width: 50px;
+            height: 50px;
+        }
+        .result {
+            margin-top: 20px;
+        }
+        .result a {
+            color: #4CAF50;
+            text-decoration: none;
+        }
+        .result a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Subtitle Extractor</h1>
+        <form id="local-upload-form" enctype="multipart/form-data">
+            <input type="file" name="file" id="file-input" required>
+            <button type="submit">Upload and Extract</button>
+        </form>
+        <form id="remote-upload-form">
+            <input type="text" name="url" id="url-input" placeholder="Enter video URL" required>
+            <button type="submit">Remote Upload and Extract</button>
+        </form>
+        <div id="progress">
+            <p>Processing...</p>
+            <div id="loading"><img src="loading.gif" alt="Loading..."></div>
+        </div>
+        <div id="result" class="result"></div>
+    </div>
+
+    <script>
+        const localForm = document.getElementById('local-upload-form');
+        const remoteForm = document.getElementById('remote-upload-form');
+        const progress = document.getElementById('progress');
+        const loading = document.getElementById('loading');
+        const resultDiv = document.getElementById('result');
+
+        localForm.addEventListener('submit', function(event) {
+            event.preventDefault();
+            const formData = new FormData(localForm);
+            uploadFile(formData);
+        });
+
+        remoteForm.addEventListener('submit', function(event) {
+            event.preventDefault();
+            const url = document.getElementById('url-input').value;
+            if (url) {
+                progress.style.display = 'block';
+                loading.style.display = 'block';
+                fetch('/remote-upload', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ url })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    loading.style.display = 'none';
+                    progress.style.display = 'none';
+                    displayResults(data);
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    loading.style.display = 'none';
+                    progress.style.display = 'none';
+                });
+            }
+        });
+
+        function uploadFile(formData) {
+            progress.style.display = 'block';
+            loading.style.display = 'block';
+            fetch('/upload', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                loading.style.display = 'none';
+                progress.style.display = 'none';
+                displayResults(data);
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                loading.style.display = 'none';
+                progress.style.display = 'none';
+            });
+        }
+
+        function displayResults(data) {
+            resultDiv.innerHTML = `
+                <p>Extracted subtitles:</p>
+                <p><a href="${data.srt}" download>Download SRT</a></p>
+                <p><a href="${data.ass}" download>Download ASS</a></p>
+            `;
+        }
+    </script>
+</body>
+</html>
